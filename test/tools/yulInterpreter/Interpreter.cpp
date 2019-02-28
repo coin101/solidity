@@ -106,9 +106,25 @@ void Interpreter::operator()(ForLoop const& _forLoop)
 	while (evaluate(*_forLoop.condition) != 0)
 	{
 		(*this)(_forLoop.body);
+		if (m_state.loopState == LoopState::Break)
+		{
+			m_state.loopState = LoopState::Default;
+			break;
+		}
 		(*this)(_forLoop.post);
+		m_state.loopState = LoopState::Default;
 	}
 	closeScope();
+}
+
+void Interpreter::operator()(Break const&)
+{
+	m_state.loopState = LoopState::Break;
+}
+
+void Interpreter::operator()(Continue const&)
+{
+	m_state.loopState = LoopState::Continue;
 }
 
 void Interpreter::operator()(Block const& _block)
@@ -122,7 +138,14 @@ void Interpreter::operator()(Block const& _block)
 			m_functions[funDef.name] = &funDef;
 			m_scopes.back().insert(funDef.name);
 		}
-	ASTWalker::operator()(_block);
+
+	for (auto const& statement : _block.statements)
+	{
+		visit(statement);
+		if (m_state.loopState != LoopState::Default)
+			break;
+	}
+
 	closeScope();
 }
 
