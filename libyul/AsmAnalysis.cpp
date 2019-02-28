@@ -25,6 +25,7 @@
 #include <libyul/AsmScope.h>
 #include <libyul/AsmAnalysisInfo.h>
 #include <libyul/Utilities.h>
+#include <libyul/Exceptions.h>
 
 #include <liblangutil/ErrorReporter.h>
 
@@ -33,6 +34,7 @@
 
 #include <memory>
 #include <functional>
+#include <utility>
 
 using namespace std;
 using namespace dev;
@@ -485,16 +487,36 @@ bool AsmAnalyzer::operator()(ForLoop const& _for)
 	if (!expectExpression(*_for.condition))
 		success = false;
 	m_stackHeight--;
+
+	m_info.stackHeightInfo[&_for] = m_stackHeight - scope(&_for.pre).numberOfVariables();
+
+	// backup outer for-loop & create new state
+	auto oldForLoop = exchange(m_currentForLoop, &_for);
+
 	if (!(*this)(_for.body))
 		success = false;
+
 	if (!(*this)(_for.post))
 		success = false;
 
 	m_stackHeight -= scope(&_for.pre).numberOfVariables();
 	m_info.stackHeightInfo[&_for] = m_stackHeight;
 	m_currentScope = originalScope;
+	m_currentForLoop = oldForLoop;
 
 	return success;
+}
+
+bool AsmAnalyzer::operator()(Break const& _break)
+{
+	m_info.stackHeightInfo[&_break] = m_stackHeight;
+	return true;
+}
+
+bool AsmAnalyzer::operator()(Continue const& _continue)
+{
+	m_info.stackHeightInfo[&_continue] = m_stackHeight;
+	return true;
 }
 
 bool AsmAnalyzer::operator()(Block const& _block)
