@@ -5,6 +5,7 @@ Language Features:
 
 
 Compiler Features:
+ * Peephole Optimizer: Remove double ``iszero`` before ``jumpi``.
  * SMTChecker: Support one-dimensional arrays.
  * Yul Optimizer: Add rule to remove empty default switch cases
  * Yul Optimizer: Add rule to remove empty cases if no default exists
