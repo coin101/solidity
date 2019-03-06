@@ -750,6 +750,13 @@ bool SMTChecker::visit(MemberAccess const& _memberAccess)
 		defineGlobalVariable(accessedName + "." + _memberAccess.memberName(), _memberAccess);
 		return false;
 	}
+	else if (accessType->category() == Type::Category::Enum)
+	{
+		auto enumType = dynamic_cast<EnumType const*>(accessType.get());
+		solAssert(enumType, "");
+		defineExpr(_memberAccess, enumType->memberValue(_memberAccess.memberName()));
+		return false;
+	}
 	else
 		m_errorReporter.warning(
 			_memberAccess.location(),
